@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 # Copyright 2017 GIG Technology NV
 #
@@ -18,15 +17,13 @@
 
 import logging
 
-from framework.plugin_loader import Plugin, AuthPlugin, get_auth_plugin, get_plugin, get_plugins, get_config
+from framework.plugin_loader import Plugin, get_plugin
 from framework.utils.plugins import Handler
-
+from plugins.intercom_support import intercom_webhooks, rogerthat_callbacks
 from plugins.rogerthat_api.rogerthat_api_plugin import RogerthatApiPlugin
 
-from plugins.intercom_support import intercom_webhooks, rogerthat_callbacks
 
 class IntercomSupportPlugin(Plugin):
-
     def __init__(self, configuration):
         super(IntercomSupportPlugin, self).__init__(configuration)
         rogerthat_api_plugin = get_plugin('rogerthat_api')

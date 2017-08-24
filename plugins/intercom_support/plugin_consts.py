@@ -15,4 +15,4 @@
 #
 # @@license_version:1.3@@
 
-NAMESPACE="intercom_support"
+NAMESPACE = "intercom_support"

@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 # Copyright 2017 GIG Technology NV
 #
@@ -20,6 +19,7 @@ from google.appengine.ext import ndb
 
 from plugins.intercom_support import plugin_consts
 
+
 class RogerthatConversation(ndb.Model):
     intercom_support_message_id = ndb.StringProperty(indexed=False)
     intercom_support_chat_id = ndb.StringProperty(indexed=False)
@@ -28,12 +28,14 @@ class RogerthatConversation(ndb.Model):
     def create_key(cls, user_id, chat_id):
         return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=plugin_consts.NAMESPACE)
 
+
 class IntercomConversation(ndb.Model):
     rogerthat_chat_id = ndb.StringProperty(indexed=False)
 
     @classmethod
     def create_key(cls, user_id, chat_id):
         return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=plugin_consts.NAMESPACE)
+
 
 class User(ndb.Model):
     @classmethod

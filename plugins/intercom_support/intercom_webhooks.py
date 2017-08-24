@@ -15,24 +15,23 @@
 #
 # @@license_version:1.3@@
 
-import re
-import webapp2
-import hmac
 import hashlib
-import logging
+import hmac
 import json
+import logging
+import re
 import uuid
 from HTMLParser import HTMLParser
 
+import webapp2
+
+from plugins.intercom_support import get_rogerthat_api_key, store_chat, try_or_defer, get_intercom_webhook_hub_secret, \
+    models
 from plugins.rogerthat_api.api import messaging as messaging_api
 from plugins.rogerthat_api.to import messaging as messaging_to
 
-from plugins.intercom_support import get_rogerthat_api_key, store_chat, try_or_defer
-from plugins.intercom_support import get_intercom_webhook_hub_secret, models
-
 
 class IntercomWebhookHandler(webapp2.RequestHandler):
-
     def post(self):
         signature = self.request.headers['X-Hub-Signature']
         body = self.request.body
@@ -54,6 +53,7 @@ calculated_signature: %(calculated_signature)s""" % locals())
         else:
             logging.error("No handler found for topic '%s'" % topic)
 
+
 def conversation_user_created(payload):
     intercom_support_chat_id = payload["data"]["item"]["id"]
     intercom_support_message_id = payload["data"]["item"]["conversation_message"]["id"]
@@ -62,6 +62,7 @@ def conversation_user_created(payload):
     rogerthat_chat_id = ic.rogerthat_chat_id
     try_or_defer(store_chat, user_id, rogerthat_chat_id, intercom_support_message_id=intercom_support_message_id,
                  intercom_support_chat_id=intercom_support_chat_id)
+
 
 def conversation_admin_replied(payload):
     intercom_support_chat_id = payload["data"]["item"]["conversation_message"]["id"]
@@ -122,11 +123,13 @@ def conversation_admin_replied(payload):
     # Forward the message to the Rogerthat app
     api_key = get_rogerthat_api_key()
     parent_key = ic.rogerthat_chat_id
-    messaging_api.send_chat_message(api_key, parent_key, message, answers=answers, attachments=attachments, sender=None, priority=None,
-                          sticky=False, tag=None, alert_flags=messaging_to.Message.ALERT_FLAG_VIBRATE, json_rpc_id=None)
+    messaging_api.send_chat_message(api_key, parent_key, message, answers=answers, attachments=attachments, sender=None,
+                                    priority=None,
+                                    sticky=False, tag=None, alert_flags=messaging_to.Message.ALERT_FLAG_VIBRATE,
+                                    json_rpc_id=None)
+
 
 class IntercomConversationParser(HTMLParser):
-
     def __init__(self):
         HTMLParser.__init__(self)
         self.__text = []
