@@ -115,5 +115,4 @@ def _start_new_chat(rt_settings, service_identity, user_details, message, contex
         intercom_support_message_id = None
 
     # Store the chat references
-    try_or_defer(store_chat, user_details[0]["email"], chat_id, intercom_support_message_id=intercom_support_message_id,
-                 _queue="default")
+    try_or_defer(store_chat, user_details[0]["email"], chat_id, intercom_support_message_id=intercom_support_message_id)
