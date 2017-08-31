@@ -51,7 +51,7 @@ calculated_signature: %(calculated_signature)s""" % locals())
         if handler:
             handler(payload)
         else:
-            logging.error("No handler found for topic '%s'" % topic)
+            logging.warn("No handler found for topic '%s'" % topic)
 
 
 def conversation_user_created(payload):

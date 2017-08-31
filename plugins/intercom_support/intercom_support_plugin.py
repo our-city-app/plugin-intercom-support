@@ -15,8 +15,6 @@
 #
 # @@license_version:1.3@@
 
-import logging
-
 from framework.plugin_loader import Plugin, get_plugin
 from framework.utils.plugins import Handler
 from plugins.intercom_support import intercom_webhooks, rogerthat_callbacks
@@ -32,7 +30,5 @@ class IntercomSupportPlugin(Plugin):
         rogerthat_api_plugin.subscribe('messaging.new_chat_message', rogerthat_callbacks.messaging_new_chat_message)
 
     def get_handlers(self, auth):
-        logging.debug("Adding handlers")
         if auth == Handler.AUTH_UNAUTHENTICATED:
-            logging.debug("Adding unauthenticated headers")
             yield Handler('/plugins/intercom-support/intercom-webhook', intercom_webhooks.IntercomWebhookHandler)
