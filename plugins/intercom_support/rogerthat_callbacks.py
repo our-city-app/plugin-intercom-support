@@ -22,6 +22,7 @@ from google.appengine.ext import deferred
 from plugins.intercom_support import intercom_post, models, try_or_defer, store_chat
 from plugins.rogerthat_api.api import messaging as messaging_api
 from plugins.rogerthat_api.to import MemberTO
+from plugins.rogerthat_api.to.messaging import ChatFlags
 
 
 def messaging_flow_member_result(rt_settings, id_, service_identity, user_details, tag, **kwargs):
@@ -102,9 +103,9 @@ def _start_new_chat(rt_settings, service_identity, user_details, message, contex
     member.alert_flags = 0
     topic = "Support request"
     chat_id = messaging_api.start_chat(api_key, [member], topic, message or "Hello, how can we be of service?",
-                                       service_identity=service_identity,
-                                       tag="intercom_support_chat", context=context, json_rpc_id=json_rpc_id,
-                                       flags=4, description=message)
+                                       service_identity=service_identity, tag="intercom_support_chat", context=context,
+                                       flags=ChatFlags.ALLOW_PICTURE, description=message, default_sticky=True,
+                                       json_rpc_id=json_rpc_id, )
 
     if message:
         # Start conversation in intercom
