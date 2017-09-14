@@ -13,16 +13,27 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
 import logging
 import uuid
 
+from google.appengine.api import users
 from google.appengine.ext import deferred
 
-from plugins.intercom_support import intercom_post, models, try_or_defer, store_chat
+from framework.utils import try_or_defer
+from mcfw.rpc import parse_complex_value
+from plugins.intercom_support import models, store_chat
+from plugins.intercom_support.bizz import intercom_api
+from plugins.intercom_support.util import get_username
 from plugins.rogerthat_api.api import messaging as messaging_api
-from plugins.rogerthat_api.to import MemberTO
+from plugins.rogerthat_api.to import MemberTO, UserDetailsTO
 from plugins.rogerthat_api.to.messaging import ChatFlags
+
+
+def log_and_parse_user_details(user_details):
+    # type: (dict) -> UserDetailsTO
+    user_detail = user_details[0] if isinstance(user_details, list) else user_details
+    logging.debug('Current user: %(email)s:%(app_id)s', user_detail)
+    return parse_complex_value(UserDetailsTO, user_detail, False)
 
 
 def messaging_flow_member_result(rt_settings, id_, service_identity, user_details, tag, **kwargs):
@@ -65,13 +76,16 @@ def messaging_new_chat_message(rt_settings, id_, tag, **kwargs):
         logging.info('Ignoring new_chat_message callback with tag "%s"' % tag)
         return
 
-    user_id = kwargs['sender']['email']
+    user_email = kwargs['sender']['email']
     user_name = kwargs['sender']['name']
     chat_id = kwargs['parent_message_key']
     message = kwargs['message']
     attachments = kwargs['attachments']
 
-    rc = models.RogerthatConversation.create_key(user_id, chat_id).get()
+    intercom_user = intercom_api.upsert_user(get_username(users.User(user_email)), user_name)
+    intercom_user_id = intercom_user.id
+
+    rc = models.RogerthatConversation.create_key(intercom_user_id, chat_id).get()
     if not rc:
         logging.error('No reference found in datastore for chat "%s"' % chat_id)
         return
@@ -79,41 +93,38 @@ def messaging_new_chat_message(rt_settings, id_, tag, **kwargs):
     intercom_support_chat_id = rc.intercom_support_chat_id
 
     if intercom_support_chat_id:
-        intercom_post("conversations/%s/reply" % intercom_support_chat_id,
-                      dict(type='user', message_type='comment', user_id=user_id,
-                           body=message, attachment_urls=[a["download_url"] for a in attachments]))
+        attachment_urls = [a['download_url'] for a in attachments]
+        intercom_api.reply(intercom_support_chat_id, 'user', intercom_user_id, 'comment', message, attachment_urls)
     else:
         if rc.intercom_support_message_id:
             deferred.defer(messaging_new_chat_message, rt_settings, id_, _countdown=1, **kwargs)
         else:
-            intercom_user = intercom_post("users", dict(user_id=user_id, name=user_name))
-            intercom_conversation = intercom_post("messages", {"from": intercom_user, "body": message})
-            intercom_support_message_id = intercom_conversation["id"]
+            intercom_conversation = intercom_api.start_conversation(intercom_user_id, message)
+            intercom_support_message_id = intercom_conversation.id
 
             # Store the chat references
-            try_or_defer(store_chat, user_id, chat_id, intercom_support_message_id)
+            try_or_defer(store_chat, intercom_user_id, chat_id, intercom_support_message_id)
 
 
 def _start_new_chat(rt_settings, service_identity, user_details, message, context, json_rpc_id):
     # Start chat in rogerthat.
     api_key = rt_settings.api_key
+    user_details = log_and_parse_user_details(user_details)
     member = MemberTO()
-    member.app_id = user_details[0]["app_id"]
-    member.member = user_details[0]["email"]
+    member.app_id = user_details.app_id
+    member.member = user_details.email
     member.alert_flags = 0
     topic = "Support request"
-    chat_id = messaging_api.start_chat(api_key, [member], topic, message or "Hello, how can we be of service?",
+    chat_id = messaging_api.start_chat(api_key, [member], topic, message or 'Hello, how can we be of service?',
                                        service_identity=service_identity, tag="intercom_support_chat", context=context,
                                        flags=ChatFlags.ALLOW_PICTURE, description=message, default_sticky=True,
                                        json_rpc_id=json_rpc_id, )
 
+    intercom_user = intercom_api.upsert_user(get_username(user_details), user_details.name)
+    # Don't store 'how can we be of service' messages
     if message:
-        # Start conversation in intercom
-        intercom_user = intercom_post("users", dict(user_id=user_details["email"], name=user_details["name"]))
-        intercom_conversation = intercom_post("messages", {"from": intercom_user, "body": message})
-        intercom_support_message_id = intercom_conversation["id"]
+        intercom_conversation = intercom_api.start_conversation(intercom_user, message)
+        intercom_support_message_id = intercom_conversation.id
     else:
         intercom_support_message_id = None
-
-    # Store the chat references
-    try_or_defer(store_chat, user_details[0]["email"], chat_id, intercom_support_message_id=intercom_support_message_id)
+    try_or_defer(store_chat, intercom_user.id, chat_id, intercom_support_message_id=intercom_support_message_id)

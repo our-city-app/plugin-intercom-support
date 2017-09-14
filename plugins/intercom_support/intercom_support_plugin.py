@@ -18,6 +18,7 @@
 from framework.plugin_loader import Plugin, get_plugin
 from framework.utils.plugins import Handler
 from plugins.intercom_support import intercom_webhooks, rogerthat_callbacks
+from plugins.intercom_support.bizz import intercom_api
 from plugins.rogerthat_api.rogerthat_api_plugin import RogerthatApiPlugin
 
 
@@ -32,3 +33,6 @@ class IntercomSupportPlugin(Plugin):
     def get_handlers(self, auth):
         if auth == Handler.AUTH_UNAUTHENTICATED:
             yield Handler('/plugins/intercom-support/intercom-webhook', intercom_webhooks.IntercomWebhookHandler)
+
+    def create_user(self, user_id, name, email, phone):
+        intercom_api.upsert_user(user_id, name, email, phone)

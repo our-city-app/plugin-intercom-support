@@ -25,8 +25,8 @@ from HTMLParser import HTMLParser
 
 import webapp2
 
-from plugins.intercom_support import get_rogerthat_api_key, store_chat, try_or_defer, get_intercom_webhook_hub_secret, \
-    models
+from framework.utils import try_or_defer
+from plugins.intercom_support import get_rogerthat_api_key, store_chat, get_intercom_webhook_hub_secret, models
 from plugins.rogerthat_api.api import messaging as messaging_api
 from plugins.rogerthat_api.to import messaging as messaging_to
 
@@ -57,16 +57,17 @@ calculated_signature: %(calculated_signature)s""" % locals())
 def conversation_user_created(payload):
     intercom_support_chat_id = payload["data"]["item"]["id"]
     intercom_support_message_id = payload["data"]["item"]["conversation_message"]["id"]
-    user_id = payload["data"]["item"]["user"]["user_id"]
-    ic = models.IntercomConversation.create_key(user_id, intercom_support_message_id).get()
+    intercom_user_id = payload["data"]["item"]["user"]["id"]
+    ic = models.IntercomConversation.create_key(intercom_user_id, intercom_support_message_id).get()
     rogerthat_chat_id = ic.rogerthat_chat_id
-    try_or_defer(store_chat, user_id, rogerthat_chat_id, intercom_support_message_id=intercom_support_message_id,
+    try_or_defer(store_chat, intercom_user_id, rogerthat_chat_id,
+                 intercom_support_message_id=intercom_support_message_id,
                  intercom_support_chat_id=intercom_support_chat_id)
 
 
 def conversation_admin_replied(payload):
     intercom_support_chat_id = payload["data"]["item"]["conversation_message"]["id"]
-    user_id = payload["data"]["item"]["user"]["user_id"]
+    user_id = payload["data"]["item"]["user"]["id"]
 
     # Check if we know this chat?
     ic = models.IntercomConversation.create_key(user_id, intercom_support_chat_id).get()

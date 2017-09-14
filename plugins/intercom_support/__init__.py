@@ -14,11 +14,7 @@
 #
 # @@license_version:1.3@@
 
-import json
-import logging
-
-from google.appengine.api import urlfetch
-from google.appengine.ext import ndb, deferred
+from google.appengine.ext import ndb
 
 from framework.plugin_loader import get_config
 from plugins.intercom_support import models
@@ -38,44 +34,9 @@ def get_intercom_webhook_hub_secret():
     return get_config(NAMESPACE)["intercom_webhook_hub_secret"]
 
 
-def intercom_post(resource, payload):
-    api_key = get_intercom_api_key()
-    body = json.dumps(payload)
-    headers = {"Content-Type": "application/json", "Accept": "application/json",
-               "Authorization": "Bearer %s" % api_key}
-    logging.info("""POST %s HTTP/1.1
-Host: api.intercom.io
-Content-Type: application/json
-Accept: application/json
-Authorization: Bearer %s
-
-%s""" % (resource, api_key, body))
-    result = urlfetch.fetch(
-        url='https://api.intercom.io/%s' % resource,
-        payload=body,
-        method=urlfetch.POST,
-        headers=headers)
-    logging.info("""
-HTTP/1.1 %s OK
-%s
-
-%s
-""" % (result.status_code, "\n".join(("%s: %s" % (k, v) for k, v in result.headers.iteritems())), result.content))
-    if result.status_code != 200:
-        raise RuntimeError("Intercom api request failed with status %s.\n%s" % (result.status_code, result.content))
-    return json.loads(result.content)
-
-
-def try_or_defer(method, *args, **kwargs):
-    try:
-        method(*args, **kwargs)
-    except:
-        deferred.defer(method, *args, **kwargs)
-
-
 @ndb.transactional()
-def store_chat(user_id, chat_id, intercom_support_chat_id=None, intercom_support_message_id=None):
-    key = RogerthatConversation.create_key(user_id, chat_id)
+def store_chat(intercom_user_id, chat_id, intercom_support_chat_id=None, intercom_support_message_id=None):
+    key = RogerthatConversation.create_key(intercom_user_id, chat_id)
     rc = key.get()
     if not rc:
         rc = RogerthatConversation(key=key)
@@ -84,11 +45,12 @@ def store_chat(user_id, chat_id, intercom_support_chat_id=None, intercom_support
         rc.intercom_support_message_id = intercom_support_message_id
     rc.put()
     if intercom_support_chat_id:
-        ic = IntercomConversation(key=models.IntercomConversation.create_key(user_id, intercom_support_chat_id))
+        ic = IntercomConversation(
+            key=models.IntercomConversation.create_key(intercom_user_id, intercom_support_chat_id))
         ic.rogerthat_chat_id = chat_id
         ic.put()
     if intercom_support_message_id:
         ic = models.IntercomConversation(
-            key=IntercomConversation.create_key(user_id, intercom_support_message_id))
+            key=IntercomConversation.create_key(intercom_user_id, intercom_support_message_id))
         ic.rogerthat_chat_id = chat_id
         ic.put()
