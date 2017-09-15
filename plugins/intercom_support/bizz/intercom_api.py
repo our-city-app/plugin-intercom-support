@@ -16,7 +16,6 @@
 # @@license_version:1.3@@
 import logging
 
-import intercom
 from intercom import ResourceNotFound
 from intercom.client import Client
 from plugins.intercom_support import get_intercom_api_key
