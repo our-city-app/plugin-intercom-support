@@ -67,7 +67,8 @@ def get_app_user_tuple_by_email(app_user_email):
 @returns(users.User)
 @arguments(human_user=users.User, app_id=unicode)
 def create_app_user(human_user, app_id=None):
-    return create_app_user_by_email(human_user.email().decode('utf-8'), app_id)
+    email = human_user.email()
+    return create_app_user_by_email(unicode(email) if not isinstance(email, unicode) else email, app_id)
 
 
 @returns(users.User)
