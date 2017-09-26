@@ -28,6 +28,7 @@ from plugins.rogerthat_api.to import messaging as messaging_to
 
 
 class IntercomConversationParser(HTMLParser):
+
     def __init__(self):
         HTMLParser.__init__(self)
         self.__text = []
@@ -56,7 +57,7 @@ class IntercomConversationParser(HTMLParser):
                 self.__text.append('\n\n')
         if tag == 'p':
             self.__recording = True
-        if tag == 'a' and attrs['data-link-type'] == 'educate.article':
+        if tag == 'a' and attrs.get('data-link-type') == 'educate.article':
             self.__article_link = attrs['href']
         if tag == 'div' and attrs['class'] == 'intercom-interblocks-link-title':
             self.__article_get_text = True
@@ -94,6 +95,10 @@ def conversation_user_created(payload):
 
 
 def conversation_admin_replied(payload):
+    try_or_defer(_conversation_admin_replied, payload)
+
+
+def _conversation_admin_replied(payload):
     intercom_support_chat_id = payload['data']['item']['conversation_message']['id']
     user_id = payload['data']['item']['user']['id']
 
