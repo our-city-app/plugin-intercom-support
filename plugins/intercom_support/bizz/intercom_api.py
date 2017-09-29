@@ -30,12 +30,15 @@ def upsert_user(user_id, name=None, email=None, phone=None):
     client = get_intercom_client()
     try:
         user = client.users.find(user_id=user_id)
+        logging.debug('Found intercom user with user_id %s', user_id)
         return update_user_if_necessary(user, user_id, name, email, phone)
     except ResourceNotFound:
+        logging.debug('No intercom user found with user_id %s, trying to find user with email %s', user_id, email)
         if email:
             try:
                 # try again by searching on email
                 user = client.users.find(email=email)
+                logging.debug('Found user with email %s', email)
                 return update_user_if_necessary(user, user_id, name, email, phone)
             except ResourceNotFound:
                 return create_user(user_id, name, email, phone)
@@ -63,6 +66,7 @@ def update_user_if_necessary(user, user_id, name, email, phone):
         user.name = name
         must_save = True
     if must_save:
+        logging.debug('Updating intercom user %s', user)
         get_intercom_client().users.save(user)
     return user
 
@@ -82,5 +86,4 @@ def start_conversation(intercom_user_id, message):
 def reply(id, type, intercom_user_id, message_type, body, attachment_urls):
     client = get_intercom_client()
     return client.conversations.reply(id=id, type=type, intercom_user_id=intercom_user_id, message_type=message_type,
-                                      body=body,
-                                      attachment_urls=attachment_urls)
+                                      body=body, attachment_urls=attachment_urls)
