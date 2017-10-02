@@ -27,8 +27,9 @@ class IntercomSupportPlugin(Plugin):
         super(IntercomSupportPlugin, self).__init__(configuration)
         rogerthat_api_plugin = get_plugin('rogerthat_api')
         assert isinstance(rogerthat_api_plugin, RogerthatApiPlugin)
-        rogerthat_api_plugin.subscribe('messaging.poke', rogerthat_callbacks.messaging_poke)
-        rogerthat_api_plugin.subscribe('messaging.new_chat_message', rogerthat_callbacks.messaging_new_chat_message)
+        rogerthat_api_plugin.subscribe('messaging.poke', rogerthat_callbacks.messaging_poke, trigger_only=True)
+        rogerthat_api_plugin.subscribe('messaging.new_chat_message', rogerthat_callbacks.messaging_new_chat_message,
+                                       trigger_only=True)
 
     def get_handlers(self, auth):
         if auth == Handler.AUTH_UNAUTHENTICATED:

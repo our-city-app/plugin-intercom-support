@@ -58,29 +58,33 @@ def messaging_flow_member_result(rt_settings, id_, service_identity, user_detail
     deferred.defer(_start_new_chat, rt_settings, service_identity, user_details, message, context, json_rpc_id)
 
 
-def messaging_poke(rt_settings, id_, service_identity, user_details, tag, **kwargs):
+def messaging_poke(rt_settings, id_, params, response):
+    tag = params['tag']
+    context = params['context']
+    service_identity = params['service_identity']
+    user_details = params['user_details']
     if tag != 'intercom_support_new_chat':
-        logging.info('Ignoring poke callback with tag "%s"' % tag)
+        logging.info('Ignoring poke callback with tag \'%s\'' % tag)
         return
 
     message = None
-    context = kwargs["context"]
     json_rpc_id = str(uuid.uuid4())
 
     try_or_defer(_start_new_chat, rt_settings, service_identity, user_details, message, context, json_rpc_id,
-                 _target="default")
+                 _target='default')
 
 
-def messaging_new_chat_message(rt_settings, id_, tag, **kwargs):
+def messaging_new_chat_message(rt_settings, id_, params, response):
+    tag = params['tag']
     if tag != 'intercom_support_chat':
         logging.info('Ignoring new_chat_message callback with tag "%s"' % tag)
         return
 
-    user_email = kwargs['sender']['email']
-    user_name = kwargs['sender']['name']
-    chat_id = kwargs['parent_message_key']
-    message = kwargs['message']
-    attachments = kwargs['attachments']
+    user_email = params['sender']['email']
+    user_name = params['sender']['name']
+    chat_id = params['parent_message_key']
+    message = params['message']
+    attachments = params['attachments']
 
     intercom_user = intercom_api.upsert_user(get_username(users.User(user_email)), user_name)
     intercom_user_id = intercom_user.id
@@ -97,7 +101,7 @@ def messaging_new_chat_message(rt_settings, id_, tag, **kwargs):
         intercom_api.reply(intercom_support_chat_id, 'user', intercom_user_id, 'comment', message, attachment_urls)
     else:
         if rc.intercom_support_message_id:
-            deferred.defer(messaging_new_chat_message, rt_settings, id_, _countdown=1, **kwargs)
+            deferred.defer(messaging_new_chat_message, rt_settings, id_, _countdown=1, **params)
         else:
             intercom_conversation = intercom_api.start_conversation(intercom_user_id, message)
             intercom_support_message_id = intercom_conversation.id

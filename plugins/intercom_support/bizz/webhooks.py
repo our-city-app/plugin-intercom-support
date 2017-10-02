@@ -24,7 +24,7 @@ from HTMLParser import HTMLParser
 from framework.utils import try_or_defer
 from plugins.intercom_support import get_rogerthat_api_key, store_chat, models
 from plugins.rogerthat_api.api import messaging as messaging_api
-from plugins.rogerthat_api.to import messaging as messaging_to
+from plugins.rogerthat_api.to.messaging import AnswerTO, AttachmentTO, Message
 
 
 class IntercomConversationParser(HTMLParser):
@@ -127,36 +127,33 @@ def _conversation_admin_replied(payload):
         message = part['body']
     answers = []
     for article_link, article_title in parser.articles().iteritems():
-        a = messaging_to.AnswerTO()
-        a.id = unicode(uuid.uuid4())
-        a.caption = article_title
-        a.action = article_link
-        answers.append(a)
+        answers.append(AnswerTO(id=unicode(uuid.uuid4()),
+                                type=u'button',
+                                caption=article_title,
+                                action=article_link,
+                                ui_flags=0,
+                                color=None))
     attachments = []
     for image in parser.images():
-        a = messaging_to.AttachmentTO()
-        a.content_type = messaging_to.AttachmentTO.CONTENT_TYPE_IMG_PNG
-        a.download_url = image
-        a.name = unicode(uuid.uuid4())
-        a.size = 0
-        attachments.append(a)
+        attachments.append(AttachmentTO(content_type=AttachmentTO.CONTENT_TYPE_IMG_PNG,
+                                        download_url=image,
+                                        name=(unicode(uuid.uuid4())),
+                                        size=0))
 
     # Add attachments
     for attachment in part['attachments']:
         content_type = attachment['content_type']
-        if content_type not in messaging_to.AttachmentTO.CONTENT_TYPES:
+        if content_type not in AttachmentTO.CONTENT_TYPES:
             logging.error('Skipped attachment %s, due to incompatible content type' % content_type)
             continue
-        a = messaging_to.AttachmentTO()
-        a.name = unicode(uuid.uuid4())
-        a.content_type = content_type
-        a.download_url = attachment['url']
-        a.size = attachment['filesize']
-        attachments.append(a)
+        attachments.append(AttachmentTO(name=unicode(uuid.uuid4()),
+                                        content_type=content_type,
+                                        download_url=attachment['url'],
+                                        size=attachment['filesize']))
 
     # Forward the message to the Rogerthat app
     api_key = get_rogerthat_api_key()
     parent_key = ic.rogerthat_chat_id
-    alert_flags = messaging_to.Message.ALERT_FLAG_VIBRATE
+    alert_flags = Message.ALERT_FLAG_VIBRATE
     messaging_api.send_chat_message(api_key, parent_key, message, answers=answers, attachments=attachments, sender=None,
                                     priority=None, sticky=False, tag=None, alert_flags=alert_flags, json_rpc_id=None)
