@@ -52,4 +52,4 @@ calculated_signature: %(calculated_signature)s""" % locals())
         if handler:
             handler(payload)
         else:
-            logging.warn('No handler found for topic \'%s\'' % topic)
+            logging.debug('No handler found for topic \'%s\'' % topic)
