@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
 from framework.plugin_loader import Plugin, get_plugin
 from framework.utils.plugins import Handler
 from plugins.intercom_support import intercom_webhooks, rogerthat_callbacks
@@ -35,5 +34,23 @@ class IntercomSupportPlugin(Plugin):
         if auth == Handler.AUTH_UNAUTHENTICATED:
             yield Handler('/plugins/intercom-support/intercom-webhook', intercom_webhooks.IntercomWebhookHandler)
 
-    def create_user(self, user_id, name, email, phone):
-        intercom_api.upsert_user(user_id, name, email, phone)
+    def upsert_user(self, user_id, name, email, phone):
+        return intercom_api.upsert_user(user_id, name, email, phone)
+
+    def get_user(self, id=None, user_id=None, email=None):
+        return intercom_api.get_user(id, user_id, email)
+
+    def send_message(self, from_, message, message_type='inapp', subject=None, template='plain', to=None):
+        return intercom_api.send_message(from_, message, message_type, subject, template, to)
+
+    def tag_users(self, tag_name, users):
+        """
+        Args:
+            tag_name (unicode): tag name
+            users: (list[dict]): List of user objects with either id, user_id or email as properties.
+        Examples:
+            >>> IntercomSupportPlugin().tag_users('sample_tag', [{'email': 'test@example.com'}, {'user_id': 'test'}])
+        Returns:
+            Tag
+        """
+        return intercom_api.tag_users(tag_name, users)

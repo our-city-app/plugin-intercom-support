@@ -18,6 +18,8 @@ import logging
 
 from intercom import ResourceNotFound
 from intercom.client import Client
+from intercom.user import User
+from mcfw.rpc import arguments, returns
 from plugins.intercom_support import get_intercom_api_key
 
 
@@ -25,8 +27,10 @@ def get_intercom_client():
     return Client(personal_access_token=get_intercom_api_key())
 
 
+@returns(User)
+@arguments(user_id=unicode, name=unicode, email=unicode, phone=unicode)
 def upsert_user(user_id, name=None, email=None, phone=None):
-    # type: (unicode, unicode) -> intercom.user.User
+    # type: (unicode, unicode, unicode, unicode) -> User
     client = get_intercom_client()
     try:
         user = client.users.find(user_id=user_id)
@@ -71,15 +75,26 @@ def update_user_if_necessary(user, user_id, name, email, phone):
     return user
 
 
-def start_conversation(intercom_user_id, message):
+def send_message(from_, message, message_type='inapp', subject=None, template='plain', to=None):
+    """
+    Args:
+        from_ (dict)
+        message (unicode)
+        message_type ('inapp'|'email')
+        subject (unicode)
+        template ('plain'|'personal')
+        to (dict)
+    """
     client = get_intercom_client()
     params = {
-        'from': {
-            'type': 'user',
-            'id': intercom_user_id
-        },
-        'body': message
+        'message_type': message_type,
+        'subject': subject,
+        'body': message,
+        'from': from_,
+        'to': to
     }
+    if message_type == 'email':
+        params.update({'template': template})
     return client.messages.create(**params)
 
 
@@ -87,3 +102,15 @@ def reply(id, type, intercom_user_id, message_type, body, attachment_urls):
     client = get_intercom_client()
     return client.conversations.reply(id=id, type=type, intercom_user_id=intercom_user_id, message_type=message_type,
                                       body=body, attachment_urls=attachment_urls)
+
+
+def get_user(id=None, user_id=None, email=None):
+    # type: (unicode, unicode, unicode) -> intercom.user.User
+    params = {k: v for k, v, in locals().iteritems() if v}
+    client = get_intercom_client()
+    return client.users.find(**params)
+
+
+def tag_users(tag_name, users):
+    # type: (unicode, list[dict]) -> Tag
+    return get_intercom_client().tags.tag(name=tag_name, users=users)

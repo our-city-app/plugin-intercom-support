@@ -103,7 +103,7 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
         if rc.intercom_support_message_id:
             deferred.defer(messaging_new_chat_message, rt_settings, id_, _countdown=1, **params)
         else:
-            intercom_conversation = intercom_api.start_conversation(intercom_user_id, message)
+            intercom_conversation = intercom_api.send_message({'type': 'user', 'id': intercom_user_id}, message)
             intercom_support_message_id = intercom_conversation.id
 
             # Store the chat references
@@ -118,7 +118,7 @@ def _start_new_chat(rt_settings, service_identity, user_details, message, contex
     member.app_id = user_details.app_id
     member.member = user_details.email
     member.alert_flags = 0
-    topic = "Support request"
+    topic = 'Support request'
     chat_id = messaging_api.start_chat(api_key, [member], topic, message or 'Hello, how can we be of service?',
                                        service_identity=service_identity, tag="intercom_support_chat", context=context,
                                        flags=ChatFlags.ALLOW_PICTURE, description=message, default_sticky=True,
@@ -127,7 +127,7 @@ def _start_new_chat(rt_settings, service_identity, user_details, message, contex
     intercom_user = intercom_api.upsert_user(get_username(user_details), user_details.name)
     # Don't store 'how can we be of service' messages
     if message:
-        intercom_conversation = intercom_api.start_conversation(intercom_user, message)
+        intercom_conversation = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)
         intercom_support_message_id = intercom_conversation.id
     else:
         intercom_support_message_id = None
