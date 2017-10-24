@@ -16,22 +16,24 @@
 # @@license_version:1.3@@
 from google.appengine.api import users
 
+from framework.plugin_loader import get_plugin
 from framework.utils import azzert
 from mcfw.rpc import returns, arguments
+from plugins.its_you_online_auth.its_you_online_auth_plugin import ItsYouOnlineAuthPlugin
+from plugins.its_you_online_auth.plugin_consts import NAMESPACE as IYO_AUTH_NAMESPACE
 from plugins.rogerthat_api.to import UserDetailsTO
 
 APP_ID_ROGERTHAT = u'rogerthat'
 
 
 @returns(unicode)
-@arguments(user=(users.User, UserDetailsTO))
-def get_username(user):
-    # Assuming oauth registration here
-    if isinstance(user, users.User):
-        email = get_human_user_from_app_user(user).email()
+@arguments(app_user_or_user_details=(users.User, UserDetailsTO))
+def get_iyo_username(app_user_or_user_details):
+    if isinstance(app_user_or_user_details, UserDetailsTO):
+        app_user = create_app_user_by_email(app_user_or_user_details.email, app_user_or_user_details.app_id)
     else:
-        email = user.email
-    return email.rsplit('@', 1)[0]
+        app_user = app_user_or_user_details
+    return get_iyo_plugin().get_username_from_rogerthat_email(app_user.email())
 
 
 @returns(users.User)
@@ -80,3 +82,9 @@ def create_app_user_by_email(human_user_email, app_id):
     if app_id != APP_ID_ROGERTHAT:
         return users.User(u"%s:%s" % (human_user_email, app_id))
     return users.User(human_user_email)
+
+
+@returns(ItsYouOnlineAuthPlugin)
+def get_iyo_plugin():
+    # type: () -> ItsYouOnlineAuthPlugin
+    return get_plugin(IYO_AUTH_NAMESPACE)

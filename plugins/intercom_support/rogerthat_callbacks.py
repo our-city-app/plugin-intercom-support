@@ -16,14 +16,13 @@
 import logging
 import uuid
 
-from google.appengine.api import users
 from google.appengine.ext import deferred
 
 from framework.utils import try_or_defer
 from mcfw.rpc import parse_complex_value
 from plugins.intercom_support import models, store_chat
 from plugins.intercom_support.bizz import intercom_api
-from plugins.intercom_support.util import get_username
+from plugins.intercom_support.util import get_iyo_username
 from plugins.rogerthat_api.api import messaging as messaging_api
 from plugins.rogerthat_api.to import MemberTO, UserDetailsTO
 from plugins.rogerthat_api.to.messaging import ChatFlags
@@ -80,13 +79,13 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
         logging.info('Ignoring new_chat_message callback with tag "%s"' % tag)
         return
 
-    user_email = params['sender']['email']
+    user_detail = log_and_parse_user_details(params['sender'])
     user_name = params['sender']['name']
     chat_id = params['parent_message_key']
     message = params['message']
     attachments = params['attachments']
 
-    intercom_user = intercom_api.upsert_user(get_username(users.User(user_email)), user_name)
+    intercom_user = intercom_api.upsert_user(get_iyo_username(user_detail), user_name)
     intercom_user_id = intercom_user.id
 
     rc = models.RogerthatConversation.create_key(intercom_user_id, chat_id).get()
@@ -124,7 +123,7 @@ def _start_new_chat(rt_settings, service_identity, user_details, message, contex
                                        flags=ChatFlags.ALLOW_PICTURE, description=message, default_sticky=True,
                                        json_rpc_id=json_rpc_id, )
 
-    intercom_user = intercom_api.upsert_user(get_username(user_details), user_details.name)
+    intercom_user = intercom_api.upsert_user(get_iyo_username(user_details), user_details.name)
     # Don't store 'how can we be of service' messages
     if message:
         intercom_conversation = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)
