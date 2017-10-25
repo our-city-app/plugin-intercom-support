@@ -83,7 +83,7 @@ class IntercomConversationParser(HTMLParser):
 def conversation_user_created(payload):
     intercom_support_chat_id = payload['data']['item']['id']
     intercom_support_message_id = payload['data']['item']['conversation_message']['id']
-    intercom_user_id = payload['data']['item']['user']['id']
+    intercom_user_id = payload['data']['item']['user']['user_id']
     ic = models.IntercomConversation.create_key(intercom_user_id, intercom_support_message_id).get()
     if not ic:
         logging.info('IntercomConversation not found, ignoring')

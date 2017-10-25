@@ -17,27 +17,42 @@
 
 from google.appengine.ext import ndb
 
-from plugins.intercom_support import plugin_consts
+from framework.models.common import NdbModel
+from plugins.intercom_support.plugin_consts import NAMESPACE
 
 
-class RogerthatConversation(ndb.Model):
+class RogerthatConversation(NdbModel):
+    NAMESPACE = NAMESPACE
+
     intercom_support_message_id = ndb.StringProperty(indexed=False)
     intercom_support_chat_id = ndb.StringProperty(indexed=False)
 
+    @property
+    def rogerthat_chat_id(self):
+        return self.key.id().decode('utf-8')
+
     @classmethod
     def create_key(cls, user_id, chat_id):
-        return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=plugin_consts.NAMESPACE)
+        return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=NAMESPACE)
+
+    @classmethod
+    def get_by_user(cls, user_id):
+        return cls.query(ancestor=User.create_key(user_id)).get()
 
 
-class IntercomConversation(ndb.Model):
+class IntercomConversation(NdbModel):
+    NAMESPACE = NAMESPACE
+
     rogerthat_chat_id = ndb.StringProperty(indexed=False)
 
     @classmethod
     def create_key(cls, user_id, chat_id):
-        return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=plugin_consts.NAMESPACE)
+        return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=NAMESPACE)
 
 
-class User(ndb.Model):
+class User(NdbModel):
+    NAMESPACE = NAMESPACE
+
     @classmethod
     def create_key(cls, user_id):
-        return ndb.Key(cls, user_id, namespace=plugin_consts.NAMESPACE)
+        return ndb.Key(cls, user_id, namespace=NAMESPACE)

@@ -34,6 +34,11 @@ def get_intercom_webhook_hub_secret():
     return get_config(NAMESPACE)["intercom_webhook_hub_secret"]
 
 
+def get_chat_for_user(username):
+    # type: (unicode) -> RogerthatConversation
+    return RogerthatConversation.get_by_user(username)
+
+
 @ndb.transactional()
 def store_chat(intercom_user_id, chat_id, intercom_support_chat_id=None, intercom_support_message_id=None):
     key = RogerthatConversation.create_key(intercom_user_id, chat_id)
