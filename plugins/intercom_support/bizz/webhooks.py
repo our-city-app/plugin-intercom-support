@@ -100,7 +100,7 @@ def conversation_admin_replied(payload):
 
 def _conversation_admin_replied(payload):
     intercom_support_chat_id = payload['data']['item']['conversation_message']['id']
-    user_id = payload['data']['item']['user']['id']
+    user_id = payload['data']['item']['user']['user_id']
 
     # Check if we know this chat?
     ic = models.IntercomConversation.create_key(user_id, intercom_support_chat_id).get()
