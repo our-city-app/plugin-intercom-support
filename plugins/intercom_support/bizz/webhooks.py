@@ -80,17 +80,27 @@ class IntercomConversationParser(HTMLParser):
         return self.__images
 
 
-def conversation_user_created(payload):
-    intercom_support_chat_id = payload['data']['item']['id']
+def _get_intercom_conversation(payload):
+    # type: (dict) -> models.IntercomConversation
     intercom_support_message_id = payload['data']['item']['conversation_message']['id']
-    intercom_user_id = payload['data']['item']['user']['user_id']
-    ic = models.IntercomConversation.create_key(intercom_user_id, intercom_support_message_id).get()
+    user_id = payload['data']['item']['user']['user_id']
+    if user_id:
+        logging.info('intercom user_id not set, ignoring conversation')
+        return
+    # Check if we know this chat?
+    ic = models.IntercomConversation.create_key(user_id, intercom_support_message_id).get()
     if not ic:
         logging.info('IntercomConversation not found, ignoring')
+    return ic
+
+
+def conversation_user_created(payload):
+    intercom_support_chat_id = payload['data']['item']['id']
+    ic = _get_intercom_conversation(payload)
+    if not ic:
         return
-    rogerthat_chat_id = ic.rogerthat_chat_id
-    try_or_defer(store_chat, intercom_user_id, rogerthat_chat_id,
-                 intercom_support_message_id=intercom_support_message_id,
+    try_or_defer(store_chat, ic.user_id, ic.rogerthat_chat_id,
+                 intercom_support_message_id=ic.message_id,
                  intercom_support_chat_id=intercom_support_chat_id)
 
 
@@ -99,13 +109,8 @@ def conversation_admin_replied(payload):
 
 
 def _conversation_admin_replied(payload):
-    intercom_support_chat_id = payload['data']['item']['conversation_message']['id']
-    user_id = payload['data']['item']['user']['user_id']
-
-    # Check if we know this chat?
-    ic = models.IntercomConversation.create_key(user_id, intercom_support_chat_id).get()
+    ic = _get_intercom_conversation(payload)
     if not ic:
-        logging.info('IntercomConversation not found, ignoring')
         return
 
     # Get message to be forwarded

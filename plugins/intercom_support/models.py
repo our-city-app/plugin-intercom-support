@@ -45,9 +45,17 @@ class IntercomConversation(NdbModel):
 
     rogerthat_chat_id = ndb.StringProperty(indexed=False)
 
+    @property
+    def user_id(self):
+        return self.key.parent().id()
+
+    @property
+    def message_id(self):
+        return self.key.id()
+
     @classmethod
-    def create_key(cls, user_id, chat_id):
-        return ndb.Key(cls, chat_id, parent=User.create_key(user_id), namespace=NAMESPACE)
+    def create_key(cls, user_id, message_id):
+        return ndb.Key(cls, message_id, parent=User.create_key(user_id), namespace=NAMESPACE)
 
 
 class User(NdbModel):
