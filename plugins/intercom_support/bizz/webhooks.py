@@ -84,7 +84,7 @@ def _get_intercom_conversation(payload):
     # type: (dict) -> models.IntercomConversation
     intercom_support_message_id = payload['data']['item']['conversation_message']['id']
     user_id = payload['data']['item']['user']['user_id']
-    if user_id:
+    if not user_id:
         logging.info('intercom user_id not set, ignoring conversation')
         return
     # Check if we know this chat?
