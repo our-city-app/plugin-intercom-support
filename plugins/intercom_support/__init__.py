@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
+import logging
 
 from google.appengine.ext import ndb
 
@@ -41,6 +42,7 @@ def get_chat_for_user(username):
 
 @ndb.transactional()
 def store_chat(intercom_user_id, chat_id, intercom_support_chat_id=None, intercom_support_message_id=None):
+    logging.info('store_chat %s', locals())
     key = RogerthatConversation.create_key(intercom_user_id, chat_id)
     rc = key.get()
     if not rc:

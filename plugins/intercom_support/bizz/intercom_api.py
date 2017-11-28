@@ -98,6 +98,14 @@ def send_message(from_, message, message_type='inapp', subject=None, template='p
     return client.messages.create(**params)
 
 
+def list_conversations(user_id):
+    client = get_intercom_client()
+    params = {
+        'user_id': user_id
+    }
+    return client.conversations.find_all(**params)
+
+
 def reply(id, type, intercom_user_id, message_type, body, attachment_urls):
     client = get_intercom_client()
     return client.conversations.reply(id=id, type=type, intercom_user_id=intercom_user_id, message_type=message_type,

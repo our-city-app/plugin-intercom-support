@@ -86,7 +86,6 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
     attachments = params['attachments']
 
     intercom_user = intercom_api.upsert_user(get_iyo_username(user_detail), user_name)
-    intercom_user_id = intercom_user.id
 
     rc = models.RogerthatConversation.create_key(intercom_user.user_id, chat_id).get()
     if not rc:
@@ -97,16 +96,23 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
 
     if intercom_support_chat_id:
         attachment_urls = [a['download_url'] for a in attachments]
-        intercom_api.reply(intercom_support_chat_id, 'user', intercom_user_id, 'comment', message, attachment_urls)
+        intercom_api.reply(intercom_support_chat_id, 'user', intercom_user.id, 'comment', message, attachment_urls)
     else:
         if rc.intercom_support_message_id:
             deferred.defer(messaging_new_chat_message, rt_settings, id_, params, _countdown=1)
         else:
-            intercom_conversation = intercom_api.send_message({'type': 'user', 'id': intercom_user_id}, message)
-            intercom_support_message_id = intercom_conversation.id
+            conversation_message = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)
+            conversation = find_conversation_by_message_id(conversation_message.id, intercom_user.id)
 
             # Store the chat references
-            try_or_defer(store_chat, intercom_user.user_id, chat_id, intercom_support_message_id)
+            try_or_defer(store_chat, intercom_user.user_id, chat_id, conversation.id)
+
+
+def find_conversation_by_message_id(message_id, user_id):
+    conversations = intercom_api.list_conversations(user_id)
+    for conversation in conversations:
+        if conversation.conversation_message.id == message_id:
+            return conversation
 
 
 def _start_new_chat(rt_settings, service_identity, user_details, message, context, json_rpc_id):
