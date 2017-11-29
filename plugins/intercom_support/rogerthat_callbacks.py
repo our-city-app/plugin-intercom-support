@@ -19,6 +19,7 @@ import uuid
 from google.appengine.ext import deferred
 
 from framework.utils import try_or_defer
+from intercom import ResourceNotFound
 from mcfw.rpc import parse_complex_value
 from plugins.intercom_support import models, store_chat, get_chat_for_user
 from plugins.intercom_support.bizz import intercom_api
@@ -92,20 +93,18 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
         logging.error('No reference found in datastore for chat "%s"' % chat_id)
         return
 
-    intercom_support_chat_id = rc.intercom_support_chat_id
-
-    if intercom_support_chat_id:
+    if rc.intercom_support_chat_id:
         attachment_urls = [a['download_url'] for a in attachments]
-        intercom_api.reply(intercom_support_chat_id, 'user', intercom_user.id, 'comment', message, attachment_urls)
-    else:
-        if rc.intercom_support_message_id:
-            deferred.defer(messaging_new_chat_message, rt_settings, id_, params, _countdown=1)
-        else:
-            conversation_message = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)
-            conversation = find_conversation_by_message_id(conversation_message.id, intercom_user.id)
-
-            # Store the chat references
-            try_or_defer(store_chat, intercom_user.user_id, chat_id, conversation.id)
+        try:
+            intercom_api.reply(rc.intercom_support_chat_id, 'user', intercom_user.id, 'comment', message,
+                               attachment_urls)
+            return
+        except ResourceNotFound as e:
+            logging.exception(e)
+    conversation_message = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)
+    conversation = find_conversation_by_message_id(conversation_message.id, intercom_user.id)
+    # Store the chat references
+    try_or_defer(store_chat, intercom_user.user_id, chat_id, conversation.id)
 
 
 def find_conversation_by_message_id(message_id, user_id):
