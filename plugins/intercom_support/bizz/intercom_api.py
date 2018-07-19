@@ -60,13 +60,13 @@ def update_user_if_necessary(user, user_id, name, email, phone):
     if user_id and (not user.user_id or user.user_id != user_id):
         user.user_id = user_id
         must_save = True
-    if email and not user.email:
+    if email and email != user.email:
         user.email = email
         must_save = True
     if phone and not user.phone:
         user.phone = phone
         must_save = True
-    if name and not user.name:
+    if name and user.name != name:
         user.name = name
         must_save = True
     if must_save:
