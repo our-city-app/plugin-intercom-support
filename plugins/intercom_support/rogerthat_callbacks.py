@@ -23,7 +23,7 @@ from intercom import ResourceNotFound
 from mcfw.rpc import parse_complex_value
 from plugins.intercom_support import models, store_chat, get_chat_for_user
 from plugins.intercom_support.bizz import intercom_api
-from plugins.intercom_support.util import get_iyo_username
+from plugins.intercom_support.util import get_username
 from plugins.rogerthat_api.api import messaging as messaging_api
 from plugins.rogerthat_api.to import MemberTO, UserDetailsTO
 from plugins.rogerthat_api.to.messaging import ChatFlags, Message
@@ -86,7 +86,7 @@ def messaging_new_chat_message(rt_settings, id_, params, response):
     message = params['message']
     attachments = params['attachments']
 
-    intercom_user = intercom_api.upsert_user(get_iyo_username(user_detail), user_name)
+    intercom_user = intercom_api.upsert_user(get_username(user_detail), user_name)
 
     rc = models.RogerthatConversation.create_key(intercom_user.user_id, chat_id).get()
     if not rc:
@@ -137,7 +137,7 @@ def _start_support_chat(api_key, service_identity, member, message, context, jso
                                        json_rpc_id=json_rpc_id)
 
     if not intercom_user:
-        intercom_user = intercom_api.upsert_user(get_iyo_username(member.member))
+        intercom_user = intercom_api.upsert_user(get_username(member.member))
     # Don't store 'how can we be of service' messages in intercom yet
     if store_on_intercom:
         intercom_conversation = intercom_api.send_message({'type': 'user', 'id': intercom_user.id}, message)

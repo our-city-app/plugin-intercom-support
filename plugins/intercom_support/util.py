@@ -28,12 +28,17 @@ APP_ID_ROGERTHAT = u'rogerthat'
 
 @returns(unicode)
 @arguments(app_user_or_user_details=(users.User, UserDetailsTO))
-def get_iyo_username(app_user_or_user_details):
+def get_username(app_user_or_user_details):
     if isinstance(app_user_or_user_details, UserDetailsTO):
         app_user = create_app_user_by_email(app_user_or_user_details.email, app_user_or_user_details.app_id)
     else:
         app_user = app_user_or_user_details
-    return get_iyo_plugin().get_username_from_rogerthat_email(app_user.email())
+    if 'itsyou.online' in app_user.email():
+        return get_iyo_plugin().get_username_from_rogerthat_email(app_user.email())
+    else:
+        # todo probably shouldn't import this here
+        from plugins.tff_backend.bizz.iyo.utils import get_username_from_app_email
+        return get_username_from_app_email(app_user)
 
 
 @returns(users.User)

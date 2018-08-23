@@ -16,6 +16,7 @@
 # @@license_version:1.3@@
 import logging
 
+from framework.utils import azzert
 from intercom import ResourceNotFound
 from intercom.client import Client
 from intercom.user import User
@@ -31,6 +32,7 @@ def get_intercom_client():
 @arguments(user_id=unicode, name=unicode, email=unicode, phone=unicode)
 def upsert_user(user_id, name=None, email=None, phone=None):
     # type: (unicode, unicode, unicode, unicode) -> User
+    azzert(user_id, u'Expected username to not be empty')
     client = get_intercom_client()
     try:
         user = client.users.find(user_id=user_id)
