@@ -165,7 +165,7 @@ def start_or_get_chat(api_key, service_identity, email, app_id, intercom_user, m
         if not has_same_email:
             logging.info('Adding new member to chat: user id %s, %s\nExisting members: %s', user_id, member_to,
                          members_list.results)
-            messaging_api.add_chat_members(conversation.rogerthat_chat_id, [member_to], json_rpc_id=json_rpc_id)
+            messaging_api.add_chat_members(api_key, conversation.rogerthat_chat_id, [member_to], json_rpc_id=json_rpc_id)
         return conversation.rogerthat_chat_id
 
     logging.info('Creating new support chat for user %s', user_id)
