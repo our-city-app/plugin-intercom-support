@@ -151,11 +151,23 @@ def _start_support_chat(api_key, service_identity, member, message, context, jso
 def start_or_get_chat(api_key, service_identity, email, app_id, intercom_user, message):
     user_id = intercom_user.user_id
     conversation = get_chat_for_user(intercom_user.user_id)
+    member_to = MemberTO(app_id=app_id, member=email, alert_flags=Message.ALERT_FLAG_SILENT)
+    json_rpc_id = str(uuid.uuid4())
     if conversation:
         logging.info('Found existing support chat %s for user %s', conversation.rogerthat_chat_id, user_id)
+        members_list = messaging_api.list_chat_members(api_key, conversation.rogerthat_chat_id)
+        # Check if email matches (could have same user_id and different email due to old users), else create new chat.
+        has_same_email = False
+        for member in members_list.results:
+            if member.email == email:
+                has_same_email = True
+                break
+        if not has_same_email:
+            logging.info('Adding new member to chat: user id %s, %s\nExisting members: %s', user_id, member_to,
+                         members_list.results)
+            messaging_api.add_chat_members(conversation.rogerthat_chat_id, [member_to], json_rpc_id=json_rpc_id)
         return conversation.rogerthat_chat_id
-    else:
-        logging.info('Creating new support chat user %s', user_id)
-        member = MemberTO(app_id=app_id, member=email, alert_flags=Message.ALERT_FLAG_SILENT)
-        json_rpc_id = str(uuid.uuid4())
-        return _start_support_chat(api_key, service_identity, member, message, None, json_rpc_id, False, intercom_user)
+
+    logging.info('Creating new support chat for user %s', user_id)
+    return _start_support_chat(api_key, service_identity, member_to, message, None, json_rpc_id, False,
+                               intercom_user)
